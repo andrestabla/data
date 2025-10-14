@@ -211,7 +211,11 @@ function renderTable() {
 
 function updateFilter(key, value) {
   state.filters[key] = value;
-  if (key !== "city") {
+  if (key === "city") {
+    state.activeMarker = value
+      ? document.querySelector(`.map-pin[data-city="${value}"]`)
+      : null;
+  } else {
     state.activeMarker = null;
   }
   renderTable();
@@ -312,6 +316,14 @@ function initMap() {
         sticky: true,
       }
     );
+  });
+
+  // Ensure the map recalculates its bounds when the layout changes.
+  requestAnimationFrame(() => {
+    map.invalidateSize();
+  });
+  window.addEventListener("resize", () => {
+    map.invalidateSize();
   });
 }
 
