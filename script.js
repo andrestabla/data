@@ -70,11 +70,15 @@ const MAP_BOUNDS = Object.freeze({
    * Estos límites corresponden al mapa político incluido en MAP_IMAGE_URL.
    * Ajusta los valores si sustituyes la ilustración base para mantener la
    * alineación de los pines con las ciudades colombianas.
+   *
+   * Los límites actuales se calibraron analizando la imagen local para que
+   * ciudades costeras como Buenaventura y Riohacha se ubiquen sobre las
+   * regiones coloreadas del mapa.
    */
-  minLat: 1.0,
-  maxLat: 13.6,
-  minLng: -79.5,
-  maxLng: -66.0,
+  minLat: -7.3,
+  maxLat: 12.3,
+  minLng: -78.3,
+  maxLng: -68.1,
 });
 
 const state = {
