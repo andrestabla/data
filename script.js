@@ -1,46 +1,5 @@
-const mapBounds = {
-  minLat: -2.5,
-  maxLat: 13.5,
-  minLng: -79.5,
-  maxLng: -66,
-};
-
-const mapOutline = [
-  [12.45, -71.33],
-  [11.5, -74.4],
-  [10.4, -75.5],
-  [9.1, -76.8],
-  [8.6, -77.4],
-  [7.3, -77.8],
-  [5.7, -76.5],
-  [4.7, -77],
-  [3.8, -77.5],
-  [2.9, -78.5],
-  [1.1, -77.9],
-  [0.6, -76.9],
-  [1.6, -74.6],
-  [0.9, -73.2],
-  [-0.2, -74.3],
-  [-1.3, -72.9],
-  [-2.1, -70.1],
-  [-1.2, -69.4],
-  [1.2, -67.2],
-  [3.4, -67.9],
-  [4.8, -67.4],
-  [5.1, -69.9],
-  [6.5, -69.9],
-  [7.5, -67.2],
-  [9.5, -67],
-  [10.9, -71.1],
-];
-
-const mapDimensions = {
-  width: 1000,
-  height:
-    1000 *
-    ((mapBounds.maxLat - mapBounds.minLat) /
-      (mapBounds.maxLng - mapBounds.minLng)),
-};
+const DEFAULT_MAP_CENTER = { lat: 4.570868, lng: -74.297333 };
+const DEFAULT_MAP_ZOOM = 5.1;
 
 const state = {
   filters: {
@@ -53,6 +12,8 @@ const state = {
   },
   activeCity: "",
   map: null,
+  googlePromise: null,
+  mapReadyPromise: null,
 };
 
 const formatNumber = (value, digits = 1) =>
@@ -215,74 +176,116 @@ function createBadge(text) {
 const hasActiveFilters = () =>
   Object.values(state.filters).some((value) => Boolean(value));
 
-function latLngToPercent(coordinates = []) {
-  const [lat, lng] = coordinates;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return { left: 50, top: 50 };
-  }
-  const left =
-    ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
-  const top =
-    ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
-  return { left, top };
-}
-
-function latLngToSvgPoint(coordinates = []) {
-  const { left, top } = latLngToPercent(coordinates);
-  return {
-    x: (left / 100) * mapDimensions.width,
-    y: (top / 100) * mapDimensions.height,
-  };
-}
-
-function buildOutlinePath() {
-  return mapOutline
-    .map((coordinates, index) => {
-      const { x, y } = latLngToSvgPoint(coordinates);
-      const command = index === 0 ? "M" : "L";
-      return `${command}${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ")
-    .concat(" Z");
-}
-
-function ensureMapSurface() {
-  if (state.map) return state.map;
-
-  const container = document.getElementById("map");
-  container.innerHTML = "";
-  container.classList.add("custom-map");
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", `0 0 ${mapDimensions.width} ${mapDimensions.height}`);
-  svg.setAttribute("class", "map-svg");
-
-  const shape = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "path"
+function getGoogleMapsKey() {
+  return (
+    (typeof window !== "undefined" && window.GOOGLE_MAPS_API_KEY) ||
+    (typeof window !== "undefined" &&
+      window.dashboardConfig &&
+      window.dashboardConfig.googleMapsApiKey) ||
+    ""
   );
-  shape.setAttribute("d", buildOutlinePath());
-  shape.setAttribute("class", "map-shape");
-  svg.appendChild(shape);
+}
 
-  const markersLayer = document.createElement("div");
-  markersLayer.className = "map-markers";
+function loadGoogleMaps() {
+  if (state.googlePromise) return state.googlePromise;
 
-  const emptyState = document.createElement("div");
-  emptyState.className = "map-empty hidden";
-  emptyState.textContent = "Sin resultados para los filtros aplicados.";
+  const apiKey = getGoogleMapsKey();
+  if (!apiKey) {
+    state.googlePromise = Promise.reject(
+      new Error(
+        "No se encontró la clave de Google Maps. Define window.GOOGLE_MAPS_API_KEY en config.js."
+      )
+    );
+    return state.googlePromise;
+  }
 
-  container.appendChild(svg);
-  container.appendChild(markersLayer);
-  container.appendChild(emptyState);
+  state.googlePromise = new Promise((resolve, reject) => {
+    window.__dashboardInitMap = () => resolve(window.google);
+    const script = document.createElement("script");
+    const params = new URLSearchParams({
+      key: apiKey,
+      callback: "__dashboardInitMap",
+      libraries: "marker",
+      v: "weekly",
+      language: "es",
+      region: "CO",
+    });
+    script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () =>
+      reject(
+        new Error(
+          "No se pudo cargar Google Maps. Verifica tu conexión y la clave de API."
+        )
+      );
+    document.head.appendChild(script);
+  });
 
-  state.map = {
-    container,
-    markersLayer,
-    emptyState,
-  };
+  return state.googlePromise;
+}
 
-  return state.map;
+function showMapError(message) {
+  const container = document.getElementById("map");
+  if (!container) return;
+  container.classList.add("map-error");
+  container.innerHTML = `
+    <div class="map-empty">
+      <strong>Mapa no disponible</strong>
+      <p>${message}</p>
+      <p><small>Confirma tu conexión o actualiza la clave en <code>config.js</code>.</small></p>
+    </div>
+  `;
+}
+
+function ensureMapReady() {
+  if (state.mapReadyPromise) return state.mapReadyPromise;
+
+  state.mapReadyPromise = loadGoogleMaps()
+    .then(() => {
+      if (state.map) return state.map;
+
+      const container = document.getElementById("map");
+      if (!container) {
+        throw new Error("No se encontró el contenedor del mapa.");
+      }
+
+      container.innerHTML = "";
+      container.classList.add("google-map-ready");
+
+      const map = new window.google.maps.Map(container, {
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MAP_ZOOM,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        gestureHandling: "greedy",
+      });
+
+      const emptyOverlay = document.createElement("div");
+      emptyOverlay.className = "map-empty hidden";
+      emptyOverlay.textContent = "Sin resultados para los filtros aplicados.";
+      container.appendChild(emptyOverlay);
+
+      state.map = {
+        map,
+        markers: [],
+        infoWindow: new window.google.maps.InfoWindow(),
+        emptyOverlay,
+      };
+
+      if (typeof window.__dashboardInitMap !== "undefined") {
+        delete window.__dashboardInitMap;
+      }
+
+      return state.map;
+    })
+    .catch((error) => {
+      showMapError(error.message);
+      throw error;
+    });
+
+  return state.mapReadyPromise;
 }
 
 function aggregateProjectsByCity(dataset = []) {
@@ -311,50 +314,93 @@ function dominantLine(projectsInCity = []) {
   return line;
 }
 
-function renderMapMarkers(filteredProjects = [], filtersApplied = false) {
-  const { markersLayer, emptyState } = ensureMapSurface();
-  markersLayer.innerHTML = "";
+function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = false) {
+  if (!mapState || !window.google) return;
+
+  mapState.markers.forEach((entry) => {
+    if (entry.marker instanceof window.google.maps.marker.AdvancedMarkerElement) {
+      entry.marker.map = null;
+    } else if (typeof entry.marker.setMap === "function") {
+      entry.marker.setMap(null);
+    }
+  });
+  mapState.markers = [];
 
   const dataset = filtersApplied ? filteredProjects : projects;
   const grouped = aggregateProjectsByCity(dataset);
 
   if (!grouped.size) {
-    emptyState.classList.remove("hidden");
+    mapState.emptyOverlay.classList.remove("hidden");
+    mapState.map.setCenter(DEFAULT_MAP_CENTER);
+    mapState.map.setZoom(DEFAULT_MAP_ZOOM);
     highlightActiveMarker();
     return;
   }
 
-  emptyState.classList.add("hidden");
+  mapState.emptyOverlay.classList.add("hidden");
+
+  const bounds = new window.google.maps.LatLngBounds();
+  const markerEntries = [];
 
   grouped.forEach((entry, city) => {
     const count = entry.projects.length;
-    const { left, top } = latLngToPercent(entry.coordinates);
+    const [lat, lng] = entry.coordinates || [];
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    const position = { lat, lng };
+    bounds.extend(position);
     const line = dominantLine(entry.projects).toLowerCase();
-    const marker = document.createElement("button");
-    marker.type = "button";
-    marker.className = `map-marker ${
+    const markerElement = document.createElement("button");
+    markerElement.type = "button";
+    markerElement.className = `map-marker ${
       line.includes("inclus") ? "inclusion" : "interculturalidad"
     }`;
-    marker.style.left = `${left}%`;
-    marker.style.top = `${top}%`;
-    marker.dataset.city = city;
-    marker.title = `${city}: ${count} equipo${count === 1 ? "" : "s"}`;
-    marker.innerHTML = `
+    markerElement.dataset.city = city;
+    markerElement.title = `${city}: ${count} equipo${count === 1 ? "" : "s"}`;
+    markerElement.innerHTML = `
       <span class="map-marker-count">${count}</span>
       <span class="map-marker-label">${city}</span>
     `;
 
-    marker.addEventListener("click", () => {
+    markerElement.addEventListener("click", () => {
       const current = state.filters.city;
       const nextValue = current === city ? "" : city;
       document.getElementById("city-filter").value = nextValue;
       updateFilter("city", nextValue);
     });
 
-    markersLayer.appendChild(marker);
+    const marker = new window.google.maps.marker.AdvancedMarkerElement({
+      map: mapState.map,
+      position,
+      content: markerElement,
+      title: `${city}: ${count} equipo${count === 1 ? "" : "s"}`,
+    });
+
+    markerEntries.push({ city, marker, element: markerElement });
   });
 
+  mapState.markers = markerEntries;
+
+  if (!bounds.isEmpty()) {
+    if (grouped.size === 1) {
+      mapState.map.setCenter(bounds.getCenter());
+      mapState.map.setZoom(7);
+    } else {
+      mapState.map.fitBounds(bounds, 60);
+    }
+  }
+
   highlightActiveMarker();
+}
+
+function updateMap(filteredProjects, filtersApplied) {
+  ensureMapReady()
+    .then((mapState) => {
+      renderMapMarkers(mapState, filteredProjects, filtersApplied);
+    })
+    .catch(() => {
+      // El error se muestra dentro de ensureMapReady.
+    });
 }
 
 function parseAdvisoryDate(label = "") {
@@ -381,6 +427,26 @@ function formatAdvisoryDate(date, fallback = "Fecha por confirmar") {
   });
 }
 
+function parseAdvisoryTime(label = "") {
+  const match = label.match(/_(\d{6})/);
+  if (match) {
+    const [, hhmmss] = match;
+    const hours = hhmmss.slice(0, 2);
+    const minutes = hhmmss.slice(2, 4);
+    if (Number.isFinite(Number(hours)) && Number.isFinite(Number(minutes))) {
+      return `${hours}:${minutes}`;
+    }
+  }
+
+  const explicit = label.match(/\b(\d{2}):(\d{2})\b/);
+  if (explicit) {
+    const [, hours, minutes] = explicit;
+    return `${hours}:${minutes}`;
+  }
+
+  return "";
+}
+
 function tidyAdvisoryNote(label = "") {
   let note = label
     .replace(/Reunión en Tutorías[-:_]*/gi, "")
@@ -405,6 +471,7 @@ function renderAdvisoryList(advisories = []) {
         .map((item) => {
           const parsedDate = parseAdvisoryDate(item.label);
           const dateText = formatAdvisoryDate(parsedDate, "Fecha pendiente");
+          const timeText = parseAdvisoryTime(item.label);
           const note = tidyAdvisoryNote(item.label);
           const statusClass = item.attended ? "attended" : "missed";
           const statusLabel = item.attended ? "Asistió" : "No asistió";
@@ -413,6 +480,7 @@ function renderAdvisoryList(advisories = []) {
               <span class="advisory-status ${statusClass}">${statusLabel}</span>
               <div>
                 <strong>${dateText}</strong>
+                ${timeText ? `<span class="advisory-time">${timeText} h</span>` : ""}
                 ${note ? `<small>${note}</small>` : ""}
               </div>
             </li>
@@ -518,7 +586,7 @@ function renderTable() {
     rows || `<tr><td colspan="12">No se encontraron resultados.</td></tr>`;
   document.getElementById("result-count").textContent = `${filtered.length} de ${totalTeams} equipos`;
 
-  renderMapMarkers(filtered, filtersApplied);
+  updateMap(filtered, filtersApplied);
 }
 
 function updateFilter(key, value) {
@@ -528,10 +596,13 @@ function updateFilter(key, value) {
 }
 
 function highlightActiveMarker() {
-  document.querySelectorAll(".map-marker").forEach((marker) => {
-    marker.classList.remove("active");
-    if (state.activeCity && marker.dataset.city === state.activeCity) {
-      marker.classList.add("active");
+  if (!state.map || !Array.isArray(state.map.markers)) return;
+
+  state.map.markers.forEach(({ city, element }) => {
+    if (!element) return;
+    element.classList.remove("active");
+    if (state.activeCity && city === state.activeCity) {
+      element.classList.add("active");
     }
   });
 }
@@ -565,6 +636,5 @@ document.addEventListener("DOMContentLoaded", () => {
   createSummaryCards();
   buildFilters();
   initFilters();
-  ensureMapSurface();
   renderTable();
 });
