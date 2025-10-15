@@ -65,6 +65,18 @@ const MAP_IMAGE_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAOECAI
   + "TkSuQmCC"
   ;
 
+const MAP_BOUNDS = Object.freeze({
+  /**
+   * Estos límites corresponden al mapa político incluido en MAP_IMAGE_URL.
+   * Ajusta los valores si sustituyes la ilustración base para mantener la
+   * alineación de los pines con las ciudades colombianas.
+   */
+  minLat: 1.0,
+  maxLat: 13.6,
+  minLng: -79.5,
+  maxLng: -66.0,
+});
+
 const state = {
   filters: {
     search: "",
