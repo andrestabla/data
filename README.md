@@ -10,7 +10,7 @@ Este repositorio contiene un tablero interactivo para visualizar los proyectos d
 2. Abre el archivo `index.html` en tu navegador preferido (no se requiere servidor adicional).
 3. Utiliza el mapa, los filtros y la tabla para explorar los proyectos, sus notas y las sesiones de tutoría.
 
-El tablero coloca los pines sobre la ilustración del [mapa político de Colombia de delmundo.top](https://www.delmundo.top/mapas/mapa-colombia/). Si prefieres trabajar sin conexión, descarga la imagen y actualiza la constante `MAP_IMAGE_URL` en `script.js` con la ruta local (por ejemplo, `./assets/mapa-colombia.png`).
+El tablero utiliza una ilustración del mapa de Colombia incrustada en formato Base64 dentro de `script.js`. Si deseas cambiarla por otra versión, reemplaza el valor de la constante `MAP_IMAGE_URL` con el nuevo _data URI_ generado a partir de tu imagen.
 
 ### Datos incluidos
 
