@@ -1,84 +1,92 @@
-const MAP_IMAGE_URL = "data:image/png;base64,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"
-  + "hABCKIRCCKigCgqhEAJCiBAKISCECKEQAkKIEAohIIQIoRACKogQCiEghAihEAJCiBAKISCECKEQAkKIEAohoIII4YVN2p/POSCEQug4g7ceHu/hiRAKoRAi"
-  + "hAih/AihECKECCFCqIUIISqIEAohQogQIoRCiBAihAihECKECCFCqIUIISqIEAohQogQIoRCiBAihAihECKECCFCqIUIISqIEAohQogQIoRCiBAihAihECKE"
-  + "CCFCqIUIISqIEAohQogQIoRCiBAihAihECKECCFCqIUIISqIEAohQogQIoRCiBAihAihECKECCFCqIUIISqIEAohQogQIoRCiBAihAihECKECCHxEGohQogK"
-  + "IoRCiBAihAghCCFCSDOEWogQooIIoRAihAghQghCiBAKoRCCECKEQqiFIISooBAKIQghQiiEQghCiBAKoRaCEKKCQiiEIIQIoRAKIQghQiiEQghCiBAKoRaC"
-  + "EKKCQiiEIIQIoRAKIQghQiiEWghCiAoKoRCCECKEQiiEIIQIoRBqIQihCqqgEAohCKEQIoRCCEIohAihFoIQqiBCKIQghEKIEAohCKEQIoTztHABeiOEMyZk"
-  + "AVaoEOK0RQgdUgghQogQCiFCiBAihEKIECKECKEQIoQIIUIohAghQogQCiFCiBAihEKIECKEQogQIoQIoRAihAghQiiECCFCiBAKIUKIECKEQiiEPrYIIUIo"
-  + "hEIIQogQCqEQghAihEIohCCECKEQCiEIIUIohEIIQogQCqEQghAihEIohCCECKEQCiEIIUIohEIIQogQCqEQghAihEIohCCECKEQCiEIIUIohEIIQogQCqEQ"
-  + "ghAihEIohCCECKEQCiEIoRCqjhAKIQihECKEQghCKIQIoRCCEAohQiiEIIRCiBAKIQihECKEQghCKIQIoRCCEAohQiiEIIRCiBAKIQihECKEQogQIoQIoRAi"
-  + "hAghQiiECCFCiBAKIUKIECKEQogQIoQIoRAihAghQiiECCFCiBAKIUKIECKEQogQIoQIoRAihAghQiiECCFCiBAKIUKIECKEQogQIoQIoRAihAghQiiECCFC"
-  + "iBAKIUKIECKEQogQIoQIoRAihAghQiiECCFCiBAKIUKIECKEQogQIoRCKHtCiBAihEKIECKECKEQIoQIIUIohAghQogQCiFCiBAihEIohD65CCFCKIRCCEKI"
-  + "EAqhEIIQIoRCKIQghAihEAohCCFCKIRCCEKIEAqhEIIQIoRCKIQghAihEAohCCFCKIRCCEKIEAqhEIIQIoRCKIQghAihEAohCCFCKIRCCEKIEAqhEIIQIoRC"
-  + "KIQghEIohEIohCCEQogQCiEIoRAihEIIQiiECKEQghAKIUIohCCEQogQCiEIoRAihEIIQiiECKEQghAKIUIohCCEQogQCiFC6CUQQoRQCBFChBAhFEKEECFE"
-  + "CIUQIUQIEUIhRAgRQoRQCBFChBAhFEKEECFECIUQIUQIEUIhRAgRQoRQCBFChBAhFEKEECFECIUQIUQIEUIhRAgRQoRQCBFChBAhFEKEECFECIUQIUQIEUIh"
-  + "RAgRQoRQCBFChBAhFEKEECFECIUQIUQIEUIhRAgRQoRQCBFChFAIEUKEECEUQoQQIUQIhRAhRAgRQiFECBFChFAIhVAIEUKEUAiFEIQQIRRCIQQhRAiFUAhB"
-  + "CBFCIRRCEEKEUAiFEIQQIRRCIQQhRAuFUAVBCNFCIVRBEEK0UAhVEIQQLRRCFQQhRAuFUAVBCNFCIVRBEEK0UAhVEIQQLRRCFQQhRAuFUAVBCNFCIVRBEEK0"
-  + "UAhVEIQQLRRCFQQhRAuFUAVBCNFCIVRBEEK0UAhVEIQQLRRCFQQhRAuFUAVBCNFCIVRBEEK0UAhVEISQNy2UQyG8IIEqiBDiNCQaQglECNFCuiFUQYQQLaQb"
-  + "QhVECNFCuiFUQYQQP58hGkI/jUEIcRrSDaEEIoRoId0QqiBCiBZ6TBoNocehCCE4DbshlECEELSwG0IVRAjBY9JoCD0ORQjBadgNoQQihOA0jIbQIYgQgtOw"
-  + "G0IJRAjBaRgNoUMQIQSnYTeEEogQehVwGkZD6BAEIcRp2A2hBIIQ4jSMhtAhCEKIHEZDKIEghMhhNIQSCEKIHEZDKIEghMhhNIQSCEKIHEZDKIEghMhhNIQS"
-  + "CEKIHEZDKIEghMhhNIQSCEKIHEZDKIEghKycw8WKuHn/JBCEEAdiLoT6B0KIA7EYQicgCCFMX0T9AyGE7Ys4URTPjZ/+gRDCUmei4w+EENJnouMPhBCOieIg"
-  + "XXxTPvEDIYTDurhDHd/9E70RIIQweh234uUFIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQA"
-  + "IQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQQAIQRACL0KAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAgh"
-  + "AAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAghAAgh"
-  + "AAghAAghAAghAAghAAghAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEII"
-  + "AEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAEIIAC/+Ap/R129IB95WAAAAAElF"
-  + "TkSuQmCC"
-  ;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+const MAP_VIEWBOX = Object.freeze({
+  width: 600,
+  height: 800,
+});
+
+/**
+ * Contornos del croquis de Colombia dibujado directamente en SVG.
+ * Ajusta los caminos si deseas redefinir la silueta o añadir detalles.
+ */
+const MAP_PATH_MAIN = `
+  M310 40
+  Q270 70 250 110
+  L210 160
+  Q190 210 170 260
+  L140 320
+  Q120 360 120 410
+  Q120 460 140 510
+  L170 570
+  L200 620
+  Q220 660 230 710
+  Q240 760 290 782
+  Q340 804 380 760
+  L420 700
+  Q440 660 440 610
+  Q440 560 420 510
+  L440 450
+  Q460 400 440 350
+  L410 290
+  Q390 240 370 200
+  L350 150
+  Q330 110 310 40
+  Z
+`.trim();
+
+const MAP_PATH_ACCENT = `
+  M290 150
+  Q270 210 250 260
+  Q230 320 240 380
+  Q250 440 270 500
+  Q290 560 300 620
+  Q310 680 320 720
+  Q340 740 360 700
+  Q370 660 360 600
+  Q350 540 340 480
+  Q330 420 320 360
+  Q310 300 310 240
+  Q310 200 300 160
+  Z
+`.trim();
+
+const MAP_PATH_HIGHLIGHT = `
+  M225 210
+  Q210 260 205 310
+  Q200 360 220 420
+  Q240 480 260 540
+  Q280 600 290 640
+  Q300 680 315 705
+  Q330 670 320 620
+  Q310 560 300 500
+  Q290 440 280 380
+  Q270 320 265 270
+  Q260 230 245 205
+  Z
+`.trim();
 
 const MAP_BOUNDS = Object.freeze({
   /**
-   * Estos límites corresponden al mapa político incluido en MAP_IMAGE_URL.
-   * Ajusta los valores si sustituyes la ilustración base para mantener la
-   * alineación de los pines con las ciudades colombianas.
-   *
-   * Los límites actuales se calibraron analizando la imagen local para que
-   * ciudades costeras como Buenaventura y Riohacha se ubiquen sobre las
-   * regiones coloreadas del mapa.
+   * Límites aproximados de Colombia utilizados para convertir latitudes y
+   * longitudes en posiciones relativas dentro del croquis SVG. Ajusta los
+   * valores si modificas el contorno para que los pines sigan alineados con
+   * el mapa.
    */
-  minLat: -4.3,
-  maxLat: 13.4,
-  minLng: -79.1,
-  maxLng: -66.85,
+  minLat: -4.5,
+  maxLat: 13.6,
+  minLng: -79.5,
+  maxLng: -66.5,
+});
+
+/**
+ * Márgenes (en porcentaje) que reservan espacio entre la proyección y los
+ * bordes del croquis, evitando que los pines queden sobre los límites.
+ */
+const MAP_PADDING = Object.freeze({
+  top: 6,
+  right: 8,
+  bottom: 10,
+  left: 12,
 });
 
 const state = {
@@ -254,6 +262,56 @@ function createBadge(text) {
 const hasActiveFilters = () =>
   Object.values(state.filters).some((value) => Boolean(value));
 
+function buildMapOutline() {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Croquis de Colombia");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add("map-outline");
+
+  const defs = document.createElementNS(SVG_NS, "defs");
+  const gradient = document.createElementNS(SVG_NS, "linearGradient");
+  gradient.id = "mapGradient";
+  gradient.setAttribute("x1", "0%");
+  gradient.setAttribute("y1", "0%");
+  gradient.setAttribute("x2", "0%");
+  gradient.setAttribute("y2", "100%");
+
+  const stopTop = document.createElementNS(SVG_NS, "stop");
+  stopTop.setAttribute("offset", "0%");
+  stopTop.setAttribute("stop-color", "#bfdbfe");
+
+  const stopMid = document.createElementNS(SVG_NS, "stop");
+  stopMid.setAttribute("offset", "55%");
+  stopMid.setAttribute("stop-color", "#93c5fd");
+
+  const stopBottom = document.createElementNS(SVG_NS, "stop");
+  stopBottom.setAttribute("offset", "100%");
+  stopBottom.setAttribute("stop-color", "#60a5fa");
+
+  gradient.append(stopTop, stopMid, stopBottom);
+  defs.appendChild(gradient);
+  svg.appendChild(defs);
+
+  const body = document.createElementNS(SVG_NS, "path");
+  body.setAttribute("d", MAP_PATH_MAIN);
+  body.classList.add("map-outline-body");
+  svg.appendChild(body);
+
+  const accent = document.createElementNS(SVG_NS, "path");
+  accent.setAttribute("d", MAP_PATH_ACCENT);
+  accent.classList.add("map-outline-accent");
+  svg.appendChild(accent);
+
+  const highlight = document.createElementNS(SVG_NS, "path");
+  highlight.setAttribute("d", MAP_PATH_HIGHLIGHT);
+  highlight.classList.add("map-outline-highlight");
+  svg.appendChild(highlight);
+
+  return svg;
+}
+
 function ensureMapReady() {
   if (state.map) return state.map;
 
@@ -269,17 +327,12 @@ function ensureMapReady() {
   const mapImage = document.createElement("div");
   mapImage.className = "map-image";
 
-  const baseImage = document.createElement("img");
-  baseImage.src = MAP_IMAGE_URL;
-  baseImage.alt = "Mapa político de Colombia";
-  baseImage.loading = "lazy";
-  baseImage.decoding = "async";
-  baseImage.className = "map-base";
+  const outline = buildMapOutline();
 
   const markerLayer = document.createElement("div");
   markerLayer.className = "map-marker-layer";
 
-  mapImage.appendChild(baseImage);
+  mapImage.appendChild(outline);
   mapImage.appendChild(markerLayer);
   container.appendChild(mapImage);
 
@@ -295,22 +348,11 @@ function ensureMapReady() {
 
   const mapState = {
     container,
-    baseImage,
+    outline,
     markerLayer,
     emptyOverlay,
     markers: [],
   };
-
-  baseImage.addEventListener("error", () => {
-    container.classList.add("map-error");
-    container.innerHTML = `
-      <div class="map-empty">
-        <strong>Mapa no disponible</strong>
-        <p>No se pudo decodificar el recurso incrustado. Verifica el valor de <code>MAP_IMAGE_URL</code> en <code>script.js</code> o reemplázalo por otra imagen codificada en base64.</p>
-      </div>
-    `;
-    state.map = null;
-  });
 
   state.map = mapState;
   return mapState;
@@ -355,6 +397,27 @@ function clamp(value, min, max) {
 }
 
 function projectToPoint(entry = {}) {
+  const coordinates = entry.coordinates || [];
+  const [lat, lng] = coordinates;
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    const clampedLat = clamp(lat, MAP_BOUNDS.minLat, MAP_BOUNDS.maxLat);
+    const clampedLng = clamp(lng, MAP_BOUNDS.minLng, MAP_BOUNDS.maxLng);
+
+    const normalizedX =
+      (clampedLng - MAP_BOUNDS.minLng) /
+      (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng);
+    const normalizedY =
+      (MAP_BOUNDS.maxLat - clampedLat) /
+      (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat);
+
+    const usableWidth = 100 - MAP_PADDING.left - MAP_PADDING.right;
+    const usableHeight = 100 - MAP_PADDING.top - MAP_PADDING.bottom;
+
+    const x = MAP_PADDING.left + normalizedX * usableWidth;
+    const y = MAP_PADDING.top + normalizedY * usableHeight;
+    return { x, y };
+  }
+
   if (
     entry.mapPosition &&
     Number.isFinite(entry.mapPosition.xPercent) &&
@@ -366,22 +429,7 @@ function projectToPoint(entry = {}) {
     };
   }
 
-  const coordinates = entry.coordinates || [];
-  const [lat, lng] = coordinates;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-  const clampedLat = clamp(lat, MAP_BOUNDS.minLat, MAP_BOUNDS.maxLat);
-  const clampedLng = clamp(lng, MAP_BOUNDS.minLng, MAP_BOUNDS.maxLng);
-
-  const x =
-    ((clampedLng - MAP_BOUNDS.minLng) /
-      (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) *
-    100;
-  const y =
-    ((MAP_BOUNDS.maxLat - clampedLat) /
-      (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) *
-    100;
-  return { x, y };
+  return null;
 }
 
 function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = false) {
