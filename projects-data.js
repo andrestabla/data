@@ -55,7 +55,11 @@ const projects = [
         "bannerCode": "100202971",
         "contactNumber": "3127082820"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 31.92,
+      "yPercent": 27.63
+    }
   },
   {
     "id": "team-3",
@@ -121,7 +125,11 @@ const projects = [
         "bannerCode": "100140023",
         "contactNumber": "3112846346"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 41.04,
+      "yPercent": 49.09
+    }
   },
   {
     "id": "team-4",
@@ -182,7 +190,11 @@ const projects = [
         "bannerCode": "100200398",
         "contactNumber": "3142788475"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 50.55,
+      "yPercent": 10.48
+    }
   },
   {
     "id": "team-5",
@@ -244,7 +256,11 @@ const projects = [
         "bannerCode": "100208186",
         "contactNumber": "3217537401"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 40.78,
+      "yPercent": 25.17
+    }
   },
   {
     "id": "team-6",
@@ -299,7 +315,11 @@ const projects = [
         "bannerCode": "",
         "contactNumber": "3145242165"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 29.18,
+      "yPercent": 20.71
+    }
   },
   {
     "id": "team-7",
@@ -345,7 +365,11 @@ const projects = [
         "bannerCode": "100212334",
         "contactNumber": "3215451174"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 32.28,
+      "yPercent": 28.74
+    }
   },
   {
     "id": "team-8",
@@ -425,7 +449,11 @@ const projects = [
         "bannerCode": "100208260",
         "contactNumber": "3163587357"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 16.89,
+      "yPercent": 53.78
+    }
   },
   {
     "id": "team-9",
@@ -491,7 +519,11 @@ const projects = [
         "bannerCode": "100212385",
         "contactNumber": ""
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 30.22,
+      "yPercent": 23.14
+    }
   },
   {
     "id": "team-10",
@@ -553,7 +585,11 @@ const projects = [
         "bannerCode": "100206274",
         "contactNumber": "3215706763"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 24.27,
+      "yPercent": 23.46
+    }
   },
   {
     "id": "team-11",
@@ -603,7 +639,11 @@ const projects = [
         "bannerCode": "1048218100",
         "contactNumber": "3165378651"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 34.16,
+      "yPercent": 14.72
+    }
   },
   {
     "id": "team-12",
@@ -669,7 +709,11 @@ const projects = [
         "bannerCode": "100202007",
         "contactNumber": ""
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 24.09,
+      "yPercent": 29.05
+    }
   },
   {
     "id": "team-13",
@@ -710,7 +754,11 @@ const projects = [
         "bannerCode": "1063274781",
         "contactNumber": "3134688575"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 27.99,
+      "yPercent": 31.14
+    }
   },
   {
     "id": "team-14",
@@ -772,7 +820,11 @@ const projects = [
         "bannerCode": "100203843",
         "contactNumber": "3136995484"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 40.27,
+      "yPercent": 14.83
+    }
   },
   {
     "id": "team-15",
@@ -830,7 +882,11 @@ const projects = [
         "bannerCode": "100212041",
         "contactNumber": "3015091794"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 28.98,
+      "yPercent": 23.8
+    }
   },
   {
     "id": "team-16",
@@ -880,7 +936,11 @@ const projects = [
         "bannerCode": "100208768",
         "contactNumber": "3147065828"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 24.82,
+      "yPercent": 29.53
+    }
   },
   {
     "id": "team-17",
@@ -942,7 +1002,11 @@ const projects = [
         "bannerCode": "100212804",
         "contactNumber": "3216874008"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 31.92,
+      "yPercent": 27.63
+    }
   },
   {
     "id": "team-18",
@@ -992,7 +1056,11 @@ const projects = [
         "bannerCode": "100198829",
         "contactNumber": ""
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 47.81,
+      "yPercent": 54.77
+    }
   },
   {
     "id": "team-19",
@@ -1042,7 +1110,11 @@ const projects = [
         "bannerCode": "100205505",
         "contactNumber": "3186419744"
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 35.47,
+      "yPercent": 23.49
+    }
   },
   {
     "id": "team-20",
@@ -1096,6 +1168,10 @@ const projects = [
         "bannerCode": "100213340",
         "contactNumber": ""
       }
-    ]
+    ],
+    "mapPosition": {
+      "xPercent": 40.01,
+      "yPercent": 12.2
+    }
   }
 ];

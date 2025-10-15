@@ -75,10 +75,10 @@ const MAP_BOUNDS = Object.freeze({
    * ciudades costeras como Buenaventura y Riohacha se ubiquen sobre las
    * regiones coloreadas del mapa.
    */
-  minLat: -7.3,
-  maxLat: 12.3,
-  minLng: -78.3,
-  maxLng: -68.1,
+  minLat: -4.3,
+  maxLat: 13.4,
+  minLng: -79.1,
+  maxLng: -66.85,
 });
 
 const state = {
@@ -322,10 +322,18 @@ function aggregateProjectsByCity(dataset = []) {
     if (!grouped.has(project.city)) {
       grouped.set(project.city, {
         coordinates: project.coordinates,
+        mapPosition: project.mapPosition,
         projects: [],
       });
     }
-    grouped.get(project.city).projects.push(project);
+    const bucket = grouped.get(project.city);
+    if (!bucket.mapPosition && project.mapPosition) {
+      bucket.mapPosition = project.mapPosition;
+    }
+    if (!bucket.coordinates && project.coordinates) {
+      bucket.coordinates = project.coordinates;
+    }
+    bucket.projects.push(project);
   });
   return grouped;
 }
@@ -346,7 +354,19 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function projectToPoint(coordinates = []) {
+function projectToPoint(entry = {}) {
+  if (
+    entry.mapPosition &&
+    Number.isFinite(entry.mapPosition.xPercent) &&
+    Number.isFinite(entry.mapPosition.yPercent)
+  ) {
+    return {
+      x: entry.mapPosition.xPercent,
+      y: entry.mapPosition.yPercent,
+    };
+  }
+
+  const coordinates = entry.coordinates || [];
   const [lat, lng] = coordinates;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
@@ -385,7 +405,7 @@ function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = fals
 
   grouped.forEach((entry, city) => {
     const count = entry.projects.length;
-    const position = projectToPoint(entry.coordinates || []);
+    const position = projectToPoint(entry);
     if (!position) return;
 
     const line = dominantLine(entry.projects).toLowerCase();
