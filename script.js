@@ -1,5 +1,11 @@
-const DEFAULT_MAP_CENTER = { lat: 4.570868, lng: -74.297333 };
-const DEFAULT_MAP_ZOOM = 5.1;
+const MAP_IMAGE_URL =
+  "https://www.delmundo.top/wp-content/uploads/mapas/2023/09/mapa-colombia-1.png";
+const MAP_BOUNDS = {
+  minLat: 1.5,
+  maxLat: 12.8,
+  minLng: -79,
+  maxLng: -67.5,
+};
 
 const state = {
   filters: {
@@ -12,8 +18,6 @@ const state = {
   },
   activeCity: "",
   map: null,
-  googlePromise: null,
-  mapReadyPromise: null,
 };
 
 const formatNumber = (value, digits = 1) =>
@@ -176,116 +180,65 @@ function createBadge(text) {
 const hasActiveFilters = () =>
   Object.values(state.filters).some((value) => Boolean(value));
 
-function getGoogleMapsKey() {
-  return (
-    (typeof window !== "undefined" && window.GOOGLE_MAPS_API_KEY) ||
-    (typeof window !== "undefined" &&
-      window.dashboardConfig &&
-      window.dashboardConfig.googleMapsApiKey) ||
-    ""
-  );
-}
+function ensureMapReady() {
+  if (state.map) return state.map;
 
-function loadGoogleMaps() {
-  if (state.googlePromise) return state.googlePromise;
-
-  const apiKey = getGoogleMapsKey();
-  if (!apiKey) {
-    state.googlePromise = Promise.reject(
-      new Error(
-        "No se encontró la clave de Google Maps. Define window.GOOGLE_MAPS_API_KEY en config.js."
-      )
-    );
-    return state.googlePromise;
+  const container = document.getElementById("map");
+  if (!container) {
+    console.error("No se encontró el contenedor del mapa.");
+    return null;
   }
 
-  state.googlePromise = new Promise((resolve, reject) => {
-    window.__dashboardInitMap = () => resolve(window.google);
-    const script = document.createElement("script");
-    const params = new URLSearchParams({
-      key: apiKey,
-      callback: "__dashboardInitMap",
-      libraries: "marker",
-      v: "weekly",
-      language: "es",
-      region: "CO",
-    });
-    script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () =>
-      reject(
-        new Error(
-          "No se pudo cargar Google Maps. Verifica tu conexión y la clave de API."
-        )
-      );
-    document.head.appendChild(script);
-  });
+  container.innerHTML = "";
+  container.classList.add("static-map-ready");
 
-  return state.googlePromise;
-}
+  const mapImage = document.createElement("div");
+  mapImage.className = "map-image";
 
-function showMapError(message) {
-  const container = document.getElementById("map");
-  if (!container) return;
-  container.classList.add("map-error");
-  container.innerHTML = `
-    <div class="map-empty">
-      <strong>Mapa no disponible</strong>
-      <p>${message}</p>
-      <p><small>Confirma tu conexión o actualiza la clave en <code>config.js</code>.</small></p>
+  const baseImage = document.createElement("img");
+  baseImage.src = MAP_IMAGE_URL;
+  baseImage.alt = "Mapa político de Colombia";
+  baseImage.loading = "lazy";
+  baseImage.className = "map-base";
+
+  const markerLayer = document.createElement("div");
+  markerLayer.className = "map-marker-layer";
+
+  mapImage.appendChild(baseImage);
+  mapImage.appendChild(markerLayer);
+  container.appendChild(mapImage);
+
+  const emptyOverlay = document.createElement("div");
+  emptyOverlay.className = "map-empty hidden";
+  emptyOverlay.innerHTML = `
+    <div>
+      <strong>Sin resultados</strong>
+      <p>Modifica los filtros para ver proyectos.</p>
     </div>
   `;
-}
+  container.appendChild(emptyOverlay);
 
-function ensureMapReady() {
-  if (state.mapReadyPromise) return state.mapReadyPromise;
+  const mapState = {
+    container,
+    baseImage,
+    markerLayer,
+    emptyOverlay,
+    markers: [],
+  };
 
-  state.mapReadyPromise = loadGoogleMaps()
-    .then(() => {
-      if (state.map) return state.map;
+  baseImage.addEventListener("error", () => {
+    container.classList.add("map-error");
+    container.innerHTML = `
+      <div class="map-empty">
+        <strong>Mapa no disponible</strong>
+        <p>No se pudo cargar la imagen desde delmundo.top. Verifica la conexión o actualiza <code>MAP_IMAGE_URL</code> en <code>script.js</code>.</p>
+      </div>
+    `;
+    state.map = null;
+  });
 
-      const container = document.getElementById("map");
-      if (!container) {
-        throw new Error("No se encontró el contenedor del mapa.");
-      }
-
-      container.innerHTML = "";
-      container.classList.add("google-map-ready");
-
-      const map = new window.google.maps.Map(container, {
-        center: DEFAULT_MAP_CENTER,
-        zoom: DEFAULT_MAP_ZOOM,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-        gestureHandling: "greedy",
-      });
-
-      const emptyOverlay = document.createElement("div");
-      emptyOverlay.className = "map-empty hidden";
-      emptyOverlay.textContent = "Sin resultados para los filtros aplicados.";
-      container.appendChild(emptyOverlay);
-
-      state.map = {
-        map,
-        markers: [],
-        infoWindow: new window.google.maps.InfoWindow(),
-        emptyOverlay,
-      };
-
-      if (typeof window.__dashboardInitMap !== "undefined") {
-        delete window.__dashboardInitMap;
-      }
-
-      return state.map;
-    })
-    .catch((error) => {
-      showMapError(error.message);
-      throw error;
-    });
-
-  return state.mapReadyPromise;
+  state.map = mapState;
+  return mapState;
 }
 
 function aggregateProjectsByCity(dataset = []) {
@@ -314,16 +267,32 @@ function dominantLine(projectsInCity = []) {
   return line;
 }
 
-function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = false) {
-  if (!mapState || !window.google) return;
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
-  mapState.markers.forEach((entry) => {
-    if (entry.marker instanceof window.google.maps.marker.AdvancedMarkerElement) {
-      entry.marker.map = null;
-    } else if (typeof entry.marker.setMap === "function") {
-      entry.marker.setMap(null);
-    }
-  });
+function projectToPoint(coordinates = []) {
+  const [lat, lng] = coordinates;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  const clampedLat = clamp(lat, MAP_BOUNDS.minLat, MAP_BOUNDS.maxLat);
+  const clampedLng = clamp(lng, MAP_BOUNDS.minLng, MAP_BOUNDS.maxLng);
+
+  const x =
+    ((clampedLng - MAP_BOUNDS.minLng) /
+      (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) *
+    100;
+  const y =
+    ((MAP_BOUNDS.maxLat - clampedLat) /
+      (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) *
+    100;
+  return { x, y };
+}
+
+function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = false) {
+  if (!mapState) return;
+
+  mapState.markerLayer.innerHTML = "";
   mapState.markers = [];
 
   const dataset = filtersApplied ? filteredProjects : projects;
@@ -331,76 +300,53 @@ function renderMapMarkers(mapState, filteredProjects = [], filtersApplied = fals
 
   if (!grouped.size) {
     mapState.emptyOverlay.classList.remove("hidden");
-    mapState.map.setCenter(DEFAULT_MAP_CENTER);
-    mapState.map.setZoom(DEFAULT_MAP_ZOOM);
     highlightActiveMarker();
     return;
   }
 
   mapState.emptyOverlay.classList.add("hidden");
 
-  const bounds = new window.google.maps.LatLngBounds();
   const markerEntries = [];
 
   grouped.forEach((entry, city) => {
     const count = entry.projects.length;
-    const [lat, lng] = entry.coordinates || [];
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const position = projectToPoint(entry.coordinates || []);
+    if (!position) return;
 
-    const position = { lat, lng };
-    bounds.extend(position);
     const line = dominantLine(entry.projects).toLowerCase();
-    const markerElement = document.createElement("button");
-    markerElement.type = "button";
-    markerElement.className = `map-marker ${
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = `map-marker ${
       line.includes("inclus") ? "inclusion" : "interculturalidad"
     }`;
-    markerElement.dataset.city = city;
-    markerElement.title = `${city}: ${count} equipo${count === 1 ? "" : "s"}`;
-    markerElement.innerHTML = `
+    marker.dataset.city = city;
+    marker.title = `${city}: ${count} equipo${count === 1 ? "" : "s"}`;
+    marker.style.left = `${position.x}%`;
+    marker.style.top = `${position.y}%`;
+    marker.innerHTML = `
       <span class="map-marker-count">${count}</span>
       <span class="map-marker-label">${city}</span>
     `;
 
-    markerElement.addEventListener("click", () => {
+    marker.addEventListener("click", () => {
       const current = state.filters.city;
       const nextValue = current === city ? "" : city;
       document.getElementById("city-filter").value = nextValue;
       updateFilter("city", nextValue);
     });
 
-    const marker = new window.google.maps.marker.AdvancedMarkerElement({
-      map: mapState.map,
-      position,
-      content: markerElement,
-      title: `${city}: ${count} equipo${count === 1 ? "" : "s"}`,
-    });
-
-    markerEntries.push({ city, marker, element: markerElement });
+    mapState.markerLayer.appendChild(marker);
+    markerEntries.push({ city, element: marker });
   });
 
   mapState.markers = markerEntries;
-
-  if (!bounds.isEmpty()) {
-    if (grouped.size === 1) {
-      mapState.map.setCenter(bounds.getCenter());
-      mapState.map.setZoom(7);
-    } else {
-      mapState.map.fitBounds(bounds, 60);
-    }
-  }
-
   highlightActiveMarker();
 }
 
 function updateMap(filteredProjects, filtersApplied) {
-  ensureMapReady()
-    .then((mapState) => {
-      renderMapMarkers(mapState, filteredProjects, filtersApplied);
-    })
-    .catch(() => {
-      // El error se muestra dentro de ensureMapReady.
-    });
+  const mapState = ensureMapReady();
+  if (!mapState) return;
+  renderMapMarkers(mapState, filteredProjects, filtersApplied);
 }
 
 function parseAdvisoryDate(label = "") {

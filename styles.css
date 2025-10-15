@@ -108,11 +108,31 @@ main {
   transition: background 0.3s ease;
 }
 
-#map.google-map-ready {
+#map.static-map-ready {
   background: #f8fafc;
 }
 
+#map .map-image {
+  position: relative;
+  width: 100%;
+}
+
+#map .map-base {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+#map .map-marker-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .map-marker {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -123,6 +143,7 @@ main {
   cursor: pointer;
   transition: transform 0.2s ease, filter 0.2s ease;
   padding: 0;
+  transform: translate(-50%, -100%);
 }
 
 .map-marker-count {
@@ -159,7 +180,7 @@ main {
 
 .map-marker:hover,
 .map-marker.active {
-  transform: translateY(-2px) scale(1.05);
+  transform: translate(-50%, calc(-100% - 2px)) scale(1.05);
   z-index: 2;
 }
 
