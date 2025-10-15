@@ -1,6 +1,45 @@
-const mapConfig = {
-  center: [4.65, -74.1],
-  zoom: 5.3,
+const mapBounds = {
+  minLat: -2.5,
+  maxLat: 13.5,
+  minLng: -79.5,
+  maxLng: -66,
+};
+
+const mapOutline = [
+  [12.45, -71.33],
+  [11.5, -74.4],
+  [10.4, -75.5],
+  [9.1, -76.8],
+  [8.6, -77.4],
+  [7.3, -77.8],
+  [5.7, -76.5],
+  [4.7, -77],
+  [3.8, -77.5],
+  [2.9, -78.5],
+  [1.1, -77.9],
+  [0.6, -76.9],
+  [1.6, -74.6],
+  [0.9, -73.2],
+  [-0.2, -74.3],
+  [-1.3, -72.9],
+  [-2.1, -70.1],
+  [-1.2, -69.4],
+  [1.2, -67.2],
+  [3.4, -67.9],
+  [4.8, -67.4],
+  [5.1, -69.9],
+  [6.5, -69.9],
+  [7.5, -67.2],
+  [9.5, -67],
+  [10.9, -71.1],
+];
+
+const mapDimensions = {
+  width: 1000,
+  height:
+    1000 *
+    ((mapBounds.maxLat - mapBounds.minLat) /
+      (mapBounds.maxLng - mapBounds.minLng)),
 };
 
 const state = {
@@ -12,7 +51,8 @@ const state = {
     city: "",
     advisory: "",
   },
-  activeMarker: null,
+  activeCity: "",
+  map: null,
 };
 
 const formatNumber = (value, digits = 1) =>
@@ -27,9 +67,8 @@ const computeAverage = (grades) => {
 const countAttended = (advisories = []) =>
   advisories.filter((item) => item.attended).length;
 
-const uniqueByGroup = new Set(
-  projects.map((p) => `${p.operator}-${p.groupNumber}`)
-);
+const totalTeams = projects.length;
+const activeTeams = projects.filter((project) => project.active).length;
 
 const overallAverage = (() => {
   const values = projects
@@ -47,8 +86,12 @@ function createSummaryCards() {
   const summaryWrapper = document.getElementById("summary-cards");
   const cards = [
     {
-      label: "Cantidad de grupos",
-      value: uniqueByGroup.size,
+      label: "Cantidad de equipos",
+      value: totalTeams,
+    },
+    {
+      label: "Equipos activos",
+      value: `${activeTeams}/${totalTeams}`,
     },
     {
       label: "Nota promedio",
@@ -106,7 +149,9 @@ function populateSelect(selectId, options) {
 }
 
 function buildFilters() {
-  const operators = [...new Set(projects.map((p) => p.operator))].sort();
+  const operators = [
+    ...new Set(projects.flatMap((p) => p.operators || [])),
+  ].sort();
   const lines = [...new Set(projects.map((p) => p.specializationLine))].sort();
   const ethics = [...new Set(projects.map((p) => p.ethicsApproval))].sort();
   const cities = [...new Set(projects.map((p) => p.city))].sort();
@@ -119,13 +164,21 @@ function buildFilters() {
 
 function matchesFilters(project) {
   const { search, operator, line, ethics, city, advisory } = state.filters;
+  const memberTokens = (project.members || []).flatMap((member) => [
+    member.fullName,
+    member.documentId,
+    member.bannerCode,
+    member.operator,
+    member.email,
+    member.contactNumber,
+  ]);
   const tokens = [
-    project.student.fullName,
-    project.groupNumber,
-    project.bannerCode,
-    project.documentId,
-    project.operator,
     project.integratorId,
+    project.groupNumber,
+    project.projectTitle,
+    project.observations,
+    ...(project.operators || []),
+    ...memberTokens,
   ]
     .filter(Boolean)
     .map((token) => token.toString().toLowerCase());
@@ -136,7 +189,7 @@ function matchesFilters(project) {
     if (!hasMatch) return false;
   }
 
-  if (operator && project.operator !== operator) return false;
+  if (operator && !(project.operators || []).includes(operator)) return false;
   if (line && project.specializationLine !== line) return false;
   if (ethics && project.ethicsApproval !== ethics) return false;
   if (city && project.city !== city) return false;
@@ -159,9 +212,221 @@ function createBadge(text) {
   return `<span class="${className}">${text}</span>`;
 }
 
+const hasActiveFilters = () =>
+  Object.values(state.filters).some((value) => Boolean(value));
+
+function latLngToPercent(coordinates = []) {
+  const [lat, lng] = coordinates;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { left: 50, top: 50 };
+  }
+  const left =
+    ((lng - mapBounds.minLng) / (mapBounds.maxLng - mapBounds.minLng)) * 100;
+  const top =
+    ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * 100;
+  return { left, top };
+}
+
+function latLngToSvgPoint(coordinates = []) {
+  const { left, top } = latLngToPercent(coordinates);
+  return {
+    x: (left / 100) * mapDimensions.width,
+    y: (top / 100) * mapDimensions.height,
+  };
+}
+
+function buildOutlinePath() {
+  return mapOutline
+    .map((coordinates, index) => {
+      const { x, y } = latLngToSvgPoint(coordinates);
+      const command = index === 0 ? "M" : "L";
+      return `${command}${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ")
+    .concat(" Z");
+}
+
+function ensureMapSurface() {
+  if (state.map) return state.map;
+
+  const container = document.getElementById("map");
+  container.innerHTML = "";
+  container.classList.add("custom-map");
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${mapDimensions.width} ${mapDimensions.height}`);
+  svg.setAttribute("class", "map-svg");
+
+  const shape = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path"
+  );
+  shape.setAttribute("d", buildOutlinePath());
+  shape.setAttribute("class", "map-shape");
+  svg.appendChild(shape);
+
+  const markersLayer = document.createElement("div");
+  markersLayer.className = "map-markers";
+
+  const emptyState = document.createElement("div");
+  emptyState.className = "map-empty hidden";
+  emptyState.textContent = "Sin resultados para los filtros aplicados.";
+
+  container.appendChild(svg);
+  container.appendChild(markersLayer);
+  container.appendChild(emptyState);
+
+  state.map = {
+    container,
+    markersLayer,
+    emptyState,
+  };
+
+  return state.map;
+}
+
+function aggregateProjectsByCity(dataset = []) {
+  const grouped = new Map();
+  dataset.forEach((project) => {
+    if (!grouped.has(project.city)) {
+      grouped.set(project.city, {
+        coordinates: project.coordinates,
+        projects: [],
+      });
+    }
+    grouped.get(project.city).projects.push(project);
+  });
+  return grouped;
+}
+
+function dominantLine(projectsInCity = []) {
+  const counts = projectsInCity.reduce((acc, project) => {
+    const key = project.specializationLine || "";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const [line] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [
+    "Interculturalidad",
+  ];
+  return line;
+}
+
+function renderMapMarkers(filteredProjects = [], filtersApplied = false) {
+  const { markersLayer, emptyState } = ensureMapSurface();
+  markersLayer.innerHTML = "";
+
+  const dataset = filtersApplied ? filteredProjects : projects;
+  const grouped = aggregateProjectsByCity(dataset);
+
+  if (!grouped.size) {
+    emptyState.classList.remove("hidden");
+    highlightActiveMarker();
+    return;
+  }
+
+  emptyState.classList.add("hidden");
+
+  grouped.forEach((entry, city) => {
+    const count = entry.projects.length;
+    const { left, top } = latLngToPercent(entry.coordinates);
+    const line = dominantLine(entry.projects).toLowerCase();
+    const marker = document.createElement("button");
+    marker.type = "button";
+    marker.className = `map-marker ${
+      line.includes("inclus") ? "inclusion" : "interculturalidad"
+    }`;
+    marker.style.left = `${left}%`;
+    marker.style.top = `${top}%`;
+    marker.dataset.city = city;
+    marker.title = `${city}: ${count} equipo${count === 1 ? "" : "s"}`;
+    marker.innerHTML = `
+      <span class="map-marker-count">${count}</span>
+      <span class="map-marker-label">${city}</span>
+    `;
+
+    marker.addEventListener("click", () => {
+      const current = state.filters.city;
+      const nextValue = current === city ? "" : city;
+      document.getElementById("city-filter").value = nextValue;
+      updateFilter("city", nextValue);
+    });
+
+    markersLayer.appendChild(marker);
+  });
+
+  highlightActiveMarker();
+}
+
+function parseAdvisoryDate(label = "") {
+  const compact = label.replace(/\s+/g, " ").trim();
+  const explicit = compact.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (explicit) {
+    const [_, day, month, year] = explicit;
+    return new Date(`${year}-${month}-${day}`);
+  }
+  const numeric = compact.match(/(20\d{2})(\d{2})(\d{2})/);
+  if (numeric) {
+    const [_, year, month, day] = numeric;
+    return new Date(`${year}-${month}-${day}`);
+  }
+  return null;
+}
+
+function formatAdvisoryDate(date, fallback = "Fecha por confirmar") {
+  if (!(date instanceof Date) || Number.isNaN(date.valueOf())) return fallback;
+  return date.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function tidyAdvisoryNote(label = "") {
+  let note = label
+    .replace(/Reunión en Tutorías[-:_]*/gi, "")
+    .replace(/Reservó/gi, "Reservó")
+    .replace(/\b(20\d{2})(\d{2})(\d{2})\b/g, "")
+    .replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, "")
+    .replace(/\.mp4/gi, "")
+    .replace(/[_-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!note) return "";
+  return note.charAt(0).toUpperCase() + note.slice(1);
+}
+
+function renderAdvisoryList(advisories = []) {
+  if (!advisories.length) {
+    return '<span class="muted">Sin registros</span>';
+  }
+  return `
+    <ul class="advisory-list">
+      ${advisories
+        .map((item) => {
+          const parsedDate = parseAdvisoryDate(item.label);
+          const dateText = formatAdvisoryDate(parsedDate, "Fecha pendiente");
+          const note = tidyAdvisoryNote(item.label);
+          const statusClass = item.attended ? "attended" : "missed";
+          const statusLabel = item.attended ? "Asistió" : "No asistió";
+          return `
+            <li>
+              <span class="advisory-status ${statusClass}">${statusLabel}</span>
+              <div>
+                <strong>${dateText}</strong>
+                ${note ? `<small>${note}</small>` : ""}
+              </div>
+            </li>
+          `;
+        })
+        .join("")}
+    </ul>
+  `;
+}
+
 function renderTable() {
   const tbody = document.querySelector("#projects-table tbody");
   const filtered = projects.filter(matchesFilters);
+  const filtersApplied = hasActiveFilters();
   const rows = filtered
     .map((project) => {
       const average = computeAverage(project.grades);
@@ -170,27 +435,73 @@ function renderTable() {
       const sessionsLabel = totalSessions
         ? `${attended}/${totalSessions}`
         : attended;
+      const statusClass = project.active
+        ? "status-badge active"
+        : "status-badge inactive";
+      const statusLabel = project.active ? "Activo" : "Inactivo";
+      const operatorChips = (project.operators || [])
+        .map((op) => `<span class="chip">${op}</span>`)
+        .join("");
+      const membersHtml = (project.members || [])
+        .map((member) => {
+          const details = [
+            member.documentId ? `CC: ${member.documentId}` : "",
+            member.bannerCode ? `Banner: ${member.bannerCode}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return `
+            <div class="member">
+              <strong>${member.fullName}</strong>
+              ${details ? `<small>${details}</small>` : ""}
+            </div>
+          `;
+        })
+        .join("");
+      const contactsHtml = (project.members || [])
+        .map((member) => {
+          const phone = member.contactNumber
+            ? `<small>${member.contactNumber}</small>`
+            : "";
+          return `
+            <div class="contact">
+              <a href="mailto:${member.email}">${member.email}</a>
+              ${phone}
+            </div>
+          `;
+        })
+        .join("");
+      const membersContent =
+        membersHtml || '<span class="muted">Sin integrantes</span>';
+      const contactsContent =
+        contactsHtml || '<span class="muted">Sin contacto</span>';
+      const advisoryList = renderAdvisoryList(project.advisories);
       return `
         <tr>
-          <td>${project.integratorId}</td>
-          <td>${project.operator}</td>
+          <td>
+            <div class="id-cell">
+              <span class="integrator">${project.integratorId}</span>
+              <span class="${statusClass}">${statusLabel}</span>
+            </div>
+          </td>
           <td><span class="tag">${project.groupNumber}</span></td>
-          <td>
-            <strong>${project.student.fullName}</strong><br />
-            <small>${project.documentId}</small>
-          </td>
-          <td>
-            <a href="mailto:${project.email}">${project.email}</a><br />
-            <small>${project.contactNumber || "Sin contacto"}</small>
-          </td>
+          <td><div class="operator-list">${operatorChips}</div></td>
+          <td><div class="member-list">${membersContent}</div></td>
+          <td><div class="contact-list">${contactsContent}</div></td>
           <td>${createBadge(project.specializationLine)}</td>
           <td>${project.city}</td>
           <td>${project.ethicsApproval}</td>
+          <td>${advisoryList}</td>
           <td>${average !== null ? formatNumber(average, 2) : "-"}</td>
           <td>${sessionsLabel}</td>
           <td>
             <div class="project-cell">
               <span>${project.projectTitle}</span>
+              ${
+                project.observations
+                  ? `<small>${project.observations}</small>`
+                  : ""
+              }
               ${
                 project.repositoryLink
                   ? `<a class="ghost-button" href="${project.repositoryLink}" target="_blank" rel="noopener">Repositorio</a>`
@@ -203,32 +514,26 @@ function renderTable() {
     })
     .join("");
 
-  tbody.innerHTML = rows || `<tr><td colspan="11">No se encontraron resultados.</td></tr>`;
-  document.getElementById("result-count").textContent = `${filtered.length} proyecto${
-    filtered.length === 1 ? "" : "s"
-  }`;
+  tbody.innerHTML =
+    rows || `<tr><td colspan="12">No se encontraron resultados.</td></tr>`;
+  document.getElementById("result-count").textContent = `${filtered.length} de ${totalTeams} equipos`;
+
+  renderMapMarkers(filtered, filtersApplied);
 }
 
 function updateFilter(key, value) {
   state.filters[key] = value;
-  if (key === "city") {
-    state.activeMarker = value
-      ? document.querySelector(`.map-pin[data-city="${value}"]`)
-      : null;
-  } else {
-    state.activeMarker = null;
-  }
+  state.activeCity = state.filters.city || "";
   renderTable();
-  highlightActiveMarker();
 }
 
 function highlightActiveMarker() {
-  document.querySelectorAll(".map-pin").forEach((pin) => {
-    pin.classList.remove("active");
+  document.querySelectorAll(".map-marker").forEach((marker) => {
+    marker.classList.remove("active");
+    if (state.activeCity && marker.dataset.city === state.activeCity) {
+      marker.classList.add("active");
+    }
   });
-  if (state.activeMarker) {
-    state.activeMarker.classList.add("active");
-  }
 }
 
 function initFilters() {
@@ -256,81 +561,10 @@ function initFilters() {
     });
 }
 
-function initMap() {
-  const map = L.map("map", {
-    zoomControl: false,
-    scrollWheelZoom: false,
-  }).setView(mapConfig.center, mapConfig.zoom);
-
-  L.control
-    .zoom({
-      position: "bottomright",
-    })
-    .addTo(map);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors",
-    maxZoom: 18,
-  }).addTo(map);
-
-  const markersByCity = new Map();
-  projects.forEach((project) => {
-    if (!markersByCity.has(project.city)) {
-      markersByCity.set(project.city, {
-        coordinates: project.coordinates,
-        projects: [],
-      });
-    }
-    markersByCity.get(project.city).projects.push(project);
-  });
-
-  markersByCity.forEach((entry, city) => {
-    const total = entry.projects.length;
-    const mainLine = entry.projects[0]?.specializationLine || "";
-    const marker = L.marker(entry.coordinates, {
-      icon: L.divIcon({
-        className: "map-pin-wrapper",
-        html: `<span class="map-pin ${
-          mainLine.toLowerCase().includes("inclus")
-            ? "inclusion"
-            : "interculturalidad"
-        }" data-city="${city}">${total}</span>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
-      }),
-    }).addTo(map);
-
-    marker.on("click", () => {
-      document.getElementById("city-filter").value = city;
-      updateFilter("city", city);
-      const pinElement = document.querySelector(`.map-pin[data-city="${city}"]`);
-      state.activeMarker = pinElement;
-      highlightActiveMarker();
-    });
-
-    marker.bindTooltip(
-      `<strong>${city}</strong><br>${total} proyecto${total === 1 ? "" : "s"}`,
-      {
-        direction: "top",
-        offset: [0, -12],
-        sticky: true,
-      }
-    );
-  });
-
-  // Ensure the map recalculates its bounds when the layout changes.
-  requestAnimationFrame(() => {
-    map.invalidateSize();
-  });
-  window.addEventListener("resize", () => {
-    map.invalidateSize();
-  });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   createSummaryCards();
   buildFilters();
   initFilters();
-  initMap();
+  ensureMapSurface();
   renderTable();
 });

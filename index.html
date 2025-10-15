@@ -5,12 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tablero de proyectos de investigación</title>
   <link rel="stylesheet" href="styles.css">
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+4psJ1CPrv9oMqu81H6tQ8Y1dCF3rWQ1iVx0R0XUw="
-    crossorigin=""
-  />
 </head>
 <body>
   <header class="page-header">
@@ -30,14 +24,14 @@
           <h2>Ubicación de proyectos</h2>
           <button id="reset-map-filter" class="ghost-button" type="button">Limpiar filtro</button>
         </div>
-        <div id="map"></div>
+        <div id="map" aria-label="Mapa de Colombia con ubicación de proyectos"></div>
         <p class="hint">Selecciona un pin para filtrar por ciudad o usa los filtros para combinar criterios.</p>
       </div>
 
       <div class="filters-panel">
         <h2>Filtros</h2>
         <label class="filter-field">
-          <span>Buscar por estudiante, grupo o código</span>
+          <span>Buscar por integrante, equipo o código</span>
           <input type="text" id="search-input" placeholder="Ej. Rosa, Grupo 8, 100212385" />
         </label>
         <label class="filter-field">
@@ -78,13 +72,14 @@
           <thead>
             <tr>
               <th>ID integrador</th>
-              <th>Operador</th>
               <th>Equipo</th>
-              <th>Estudiante</th>
-              <th>Correo</th>
+              <th>Operadores</th>
+              <th>Integrantes</th>
+              <th>Contactos</th>
               <th>Línea</th>
               <th>Ciudad</th>
               <th>Aval ético</th>
+              <th>Tutorías</th>
               <th>Notas promedio</th>
               <th>Sesiones</th>
               <th>Proyecto</th>
@@ -100,11 +95,6 @@
     <p>Los datos se actualizan automáticamente a partir de la información del curso. Descarga el repositorio y abre <strong>index.html</strong> en tu navegador para explorar el tablero.</p>
   </footer>
 
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-o9N1j7kGStb6l7gkaT4hXk6Jzj0P0uQ0C2BMMON6p40="
-    crossorigin=""
-  ></script>
   <script src="projects-data.js"></script>
   <script src="script.js"></script>
 </body>
