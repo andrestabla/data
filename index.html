@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tablero de proyectos de investigación</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <div class="title-block">
+      <h1>Proyectos de investigación</h1>
+      <p>Investigación Acción 2025-II · Profesor Andrés Tabla</p>
+    </div>
+    <div class="summary-cards" id="summary-cards">
+      <!-- summary cards inserted here -->
+    </div>
+  </header>
+
+  <main>
+    <section class="dashboard">
+      <div class="map-panel">
+        <div class="panel-header">
+          <h2>Ubicación de proyectos</h2>
+          <button id="reset-map-filter" class="ghost-button" type="button">Limpiar filtro</button>
+        </div>
+        <div id="map" aria-label="Mapa de Colombia con ubicación de proyectos"></div>
+        <p class="hint">Selecciona un pin para filtrar por ciudad o usa los filtros para combinar criterios.</p>
+      </div>
+
+      <div class="filters-panel">
+        <h2>Filtros</h2>
+        <label class="filter-field">
+          <span>Buscar por integrante, equipo o código</span>
+          <input type="text" id="search-input" placeholder="Ej. Rosa, Grupo 8, 100212385" />
+        </label>
+        <label class="filter-field">
+          <span>Operador</span>
+          <select id="operator-filter"></select>
+        </label>
+        <label class="filter-field">
+          <span>Línea de profundización</span>
+          <select id="line-filter"></select>
+        </label>
+        <label class="filter-field">
+          <span>Aval ético</span>
+          <select id="ethics-filter"></select>
+        </label>
+        <label class="filter-field">
+          <span>Ciudad/Municipio</span>
+          <select id="city-filter"></select>
+        </label>
+        <label class="filter-field">
+          <span>Asistencia a tutorías</span>
+          <select id="advisory-filter">
+            <option value="">Todos</option>
+            <option value="alta">4 o más sesiones</option>
+            <option value="media">1 a 3 sesiones</option>
+            <option value="baja">Sin sesiones</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="table-section">
+      <div class="panel-header">
+        <h2>Detalle de proyectos</h2>
+        <span id="result-count"></span>
+      </div>
+      <div class="table-wrapper">
+        <table id="projects-table">
+          <thead>
+            <tr>
+              <th>ID integrador</th>
+              <th>Equipo</th>
+              <th>Operadores</th>
+              <th>Integrantes</th>
+              <th>Contactos</th>
+              <th>Línea</th>
+              <th>Ciudad</th>
+              <th>Aval ético</th>
+              <th>Tutorías</th>
+              <th>Notas promedio</th>
+              <th>Sesiones</th>
+              <th>Proyecto</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Los datos se actualizan automáticamente a partir de la información del curso. Descarga el repositorio y abre <strong>index.html</strong> en tu navegador para explorar el tablero.</p>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="projects-data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
